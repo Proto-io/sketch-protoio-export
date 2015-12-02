@@ -1,0 +1,82 @@
+@import 'library/common.js'
+@import 'proto_lib/config.js'
+@import 'export_all.js'
+
+var selection;
+var doc;
+var globalSelectedItems=[[NSMutableDictionary alloc] init];
+var globalSelectedArtboards=[];
+
+var onExportAll = function(context) {	
+	evalContext(context);
+	export_main();
+};
+
+var onExportSelectedArboards = function(context){
+	//alert("here");
+	evalContext(context);
+	var aSelectedArtboards=[];
+	if([selection count]>0){
+	  for (var i=0; i<[selection count]; i++) {
+			var layer = [selection objectAtIndex:i];
+			if([layer class]=="MSArtboardGroup"){
+				aSelectedArtboards.push(layer);
+			}
+			log([layer class]+ ": " +[layer name]);
+		}
+		var selectedArboardsCount=aSelectedArtboards.length;
+		if(selectedArboardsCount==0){
+			alert("No Artboards selected");
+		}else{
+			//alert("You selected "+selectedArboardsCount+" arboard"+(selectedArboardsCount==1?"":"s")+" for export\nUnfortunately the plugin doesn't do anything yet ;-)");
+			export_main(aSelectedArtboards);
+		}
+
+	}else{
+		alert("Select one or more Artboards")
+	}
+
+}
+var onExportSelectedItems = function(context){
+	//[globalSelectedItems removeAllObjects];
+	evalContext(context);
+	if([selection count]>0){
+	  for (var i=0; i<[selection count]; i++) {
+			var layer = [selection objectAtIndex:i];
+			if(is_validExportableItem(layer)){
+				[globalSelectedItems setObject:1 forKey:[layer objectID]];
+				globalSelectedArtboards.push(artboartForLayer(layer));
+			}
+		}
+	}
+	if([globalSelectedItems count]==0){		
+		alert("Select one or more items")	
+	}else{
+
+		export_selected_items_main(selection,globalSelectedArtboards);
+	}
+	
+}
+
+function is_validExportableItem(layer) {	
+  return (![layer isMemberOfClass:[MSArtboardGroup class]] && !([layer isMemberOfClass:[MSPage class]])) ;
+}
+
+function artboartForLayer(layer){
+	var parentLayer=[layer parentGroup];
+	if([parentLayer class]=="MSArtboardGroup"){
+		return parentLayer;
+	}else{
+		return artboartForLayer(parentLayer);
+	}
+}
+
+function evalContext(context){
+	doc=context.document;
+	selection = context.selection; 
+}
+
+function log(message){
+    [doc showMessage:message];
+    print(message);
+}
