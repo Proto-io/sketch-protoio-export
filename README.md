@@ -13,7 +13,7 @@ Export to Proto.io
 
 ![Menu](./images/menu-option.png )
 
-2. Drag and drop exported file in Proto.io
+2. Drag and drop the exported file in Proto.io
 
 ![Drag and Drop](./images/drag.gif)
 
