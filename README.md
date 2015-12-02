@@ -6,9 +6,10 @@ Export to Proto.io
 
 # How it works
 1. Select one of the options under `Plugins > Proto.io`
-- All Pages and Artboards as Screens
-- Selected Artboards as Screens
-- Selected Items as Images
+
+* All Pages and Artboards as Screens
+* Selected Artboards as Screens
+* Selected Items as Images
 
 ![Menu](./images/menu-option.png )
 
