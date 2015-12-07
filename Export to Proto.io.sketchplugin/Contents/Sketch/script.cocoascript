@@ -28,7 +28,7 @@ var onExportSelectedArboards = function(context){
 		if(selectedArboardsCount==0){
 			alert("No Artboards selected");
 		}else{
-			//alert("You selected "+selectedArboardsCount+" arboard"+(selectedArboardsCount==1?"":"s")+" for export\nUnfortunately the plugin doesn't do anything yet ;-)");
+			//alert("You selected "+selectedArboardsCount+" artboard"+(selectedArboardsCount==1?"":"s")+" for export\nUnfortunately the plugin doesn't do anything yet ;-)");
 			export_main(aSelectedArtboards);
 		}
 

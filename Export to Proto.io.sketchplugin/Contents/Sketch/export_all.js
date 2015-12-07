@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.03";
+var version="1.04";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -49,7 +49,7 @@ function loopPages(doc){
 		unhideHiddenLayersInPage();
 	}
 	if(totalArboardsInAllPages==0){
-	    alert("No Arboards where found to export!");
+	    alert("No Artboards were found to export!");
 	}else{
     finishExport();
   }
@@ -686,7 +686,7 @@ function doConfirm(message){
 function export_main(aArtboards) {
 	docName=[doc displayName].replace(".sketch","");
     initialPage=[doc currentPage];
-    var message="All Pages and Arboards"
+    var message="All Pages and Artboards"
     if(aArtboards && aArtboards.length>0){message="Selected Artboards"}
     if(exportSelectedItemsOnly){message="Selected Items"}
     if(doConfirm(message)){
