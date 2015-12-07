@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.02";
+var version="1.03";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -673,9 +673,9 @@ function doConfirm(message){
 
   var comboboxScale=1;
   if ([combobox indexOfSelectedItem] != -1) {
-    comboboxScale=[combobox objectValueOfSelectedItem].replace(/[^0-9]/g,"");
+    comboboxScale=[combobox objectValueOfSelectedItem].replace(/[^0-9.]/g,"");
    }else{
-    comboboxScale=([combobox stringValue].replace(/[^0-9]/g,""));
+    comboboxScale=([combobox stringValue].replace(/[^0-9.]/g,""));
    }
    setDefault("optionExportScale",comboboxScale.toString());
    export_scale=eval(comboboxScale);
