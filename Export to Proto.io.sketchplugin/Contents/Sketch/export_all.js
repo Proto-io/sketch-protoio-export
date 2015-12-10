@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.04";
+var version="1.05";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -434,8 +434,12 @@ function export_layer(ogLayer,parentName,parentID){
   var exportSize = [exportOptions addExportSize]
   [exportSize setScale:export_scale]
   var exportSizes=[exportOptions sizes]
-
-  slice = [[MSSliceMaker slicesFromExportableLayer:layer_copy sizes:exportSizes] firstObject];
+  try {
+    slice = [[MSSliceMaker slicesFromExportableLayer:layer_copy sizes:exportSizes] firstObject];  
+  }catch(e){
+    slice = [[MSSliceMaker slicesFromExportableLayer:layer_copy sizes:exportSizes useIDForName:false] firstObject];  
+  }
+  
   if(okToExport(sliceId)){
     [doc saveArtboardOrSlice:slice toFile:outFile];  
   }
