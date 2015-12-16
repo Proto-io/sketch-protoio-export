@@ -34,10 +34,13 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.05";
+var version="1.06";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
+var startTime;
+var endTime;
+
 function loopPages(doc){
 	log ("Looping pages");
 	var pagesCount=[[doc pages] count];
@@ -688,6 +691,7 @@ function doConfirm(message){
 
 
 function export_main(aArtboards) {
+  setStartTime();
 	docName=[doc displayName].replace(".sketch","");
     initialPage=[doc currentPage];
     var message="All Pages and Artboards"
@@ -712,9 +716,21 @@ function export_main(aArtboards) {
 
 
 function export_selected_items_main(selectedItems,selectedArboards){
+  setStartTime();
   exportSelectedItemsOnly=true;
   extendSelection(selectedItems);
   export_main(selectedArboards);
+
+}
+
+function setStartTime(){
+  startTime=[NSDate date];
+}
+function setEndTime(){
+  endTime=[NSDate date];
+}
+function getTimeTaken(){
+  return [endTime timeIntervalSinceDate:startTime];
 
 }
 
@@ -756,21 +772,26 @@ function buildArchive(){
     if(apVersion){
       //DNF: check uniqueness in future versions
       argsArray = [NSArray arrayWithObjects:"-r","../"+outPackageFile+".protoio","./", nil]; //this works when selecting dir instead of filename
-
-
     }
+
     [task setCurrentDirectoryPath:outFolder];
     [task setLaunchPath:"/usr/bin/zip"];
     [task setArguments:argsArray];
     [task launch];
-    
+    setEndTime();
+    archiveComplete();
+}
+
+function archiveComplete(){
     var archiveFile=outFolderToSandbox+outPackageFile+".protoio";
     var file_manager = [NSFileManager defaultManager];
     if([file_manager fileExistsAtPath:archiveFile]){
        [[NSFileManager defaultManager] removeItemAtPath:archiveFile error:nil]  
     }
-	if ([file_manager fileExistsAtPath:outFolder]) {
-	  [NSThread sleepForTimeInterval:0.5]
+  if ([file_manager fileExistsAtPath:outFolder]) {
+    var timeTaken=getTimeTaken();
+    var delay=timeTaken/5;
+    [NSThread sleepForTimeInterval:delay]
     if(apVersion){
       //DNF: check uniqueness in future versions
       [[NSFileManager defaultManager] copyItemAtPath:outFolder+outPackageFile+".protoio" toPath:archiveFile error:nil];  
@@ -778,12 +799,13 @@ function buildArchive(){
     if(!debugMode){
       [[NSFileManager defaultManager] removeItemAtPath:outFolder error:nil]
     }
-  	}
+    }
     log("Proto.io package saved here: "+outFolderToSandbox+outPackageFile+".protoio");
     workspace = [[NSWorkspace alloc] init];
     [workspace openFile:outFolderToSandbox];
     [workspace selectFile:archiveFile inFileViewerRootedAtPath:outFolderToSandbox];
-    task = null
+
+
 }
 
 function  escapeFilename (acFilename) {
