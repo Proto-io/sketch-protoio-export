@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.06";
+var version="1.07";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -369,8 +369,16 @@ var export_mask_layer = function(layer, mask_index,parentName,parentID,og_mask_l
 
   var sliceLayer=[MSSliceLayer sliceLayerFromLayer:mask_layer]
   var exportOptions=[sliceLayer exportOptions]
-  [[exportOptions sizes] removeAllObjects];
-  var exportSize = [exportOptions addExportSize]
+  try{
+      [[exportOptions sizes] removeAllObjects];
+      var exportSize = [exportOptions addExportSize]
+  }catch(e){
+      //compatibility with Sketch 3.5
+      [[exportOptions exportFormats] removeAllObjects];
+      var exportSize = [exportOptions addExportFormat]
+  }
+  
+
   [exportSize setScale:export_scale]
   
   var sliceId=[og_mask_layer objectID];
@@ -433,14 +441,35 @@ function export_layer(ogLayer,parentName,parentID){
   
 
   var exportOptions=[layer_copy exportOptions]
-  [[exportOptions sizes] removeAllObjects];
-  var exportSize = [exportOptions addExportSize]
+  try{
+      [[exportOptions sizes] removeAllObjects];
+      var exportSize = [exportOptions addExportSize]
+  }catch(e){
+      //compatibility with Sketch 3.5
+      [[exportOptions exportFormats] removeAllObjects];
+      var exportSize = [exportOptions addExportFormat]
+  }
+  
+  
   [exportSize setScale:export_scale]
-  var exportSizes=[exportOptions sizes]
+  try{
+      var exportSizes=[exportOptions sizes]
+  }catch(e){
+    //compatibility with Sketch 3.5
+      var exportSizes=[exportOptions exportFormats]
+  }
+  
   try {
     slice = [[MSSliceMaker slicesFromExportableLayer:layer_copy sizes:exportSizes] firstObject];  
   }catch(e){
-    slice = [[MSSliceMaker slicesFromExportableLayer:layer_copy sizes:exportSizes useIDForName:false] firstObject];  
+    try{
+      //compatibility with Sketch 3.4
+      slice = [[MSSliceMaker slicesFromExportableLayer:layer_copy sizes:exportSizes useIDForName:false] firstObject];  
+    }catch(e){
+      //compatibility with Sketch 3.5
+      slice=[[MSExportRequest exportRequestsFromExportableLayer:layer_copy exportFormats:exportSizes useIDForName:false] firstObject];
+    }
+    
   }
   
   if(okToExport(sliceId)){
