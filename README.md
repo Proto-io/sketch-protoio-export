@@ -1,7 +1,7 @@
 Export to Proto.io
 =====================
 # Installation
-1. [Download Zip](https://dteyv52hbg2at.cloudfront.net/tools/sketch/Protoio-sketch-plugin.zip) or clone the repository
+1. [Download Zip](https://github.com/Proto-io/sketch-protoio-export/archive/master.zip) or clone the repository
 2. Double click `Export to Proto.io.sketchplugin` to install
 
 # How it works
