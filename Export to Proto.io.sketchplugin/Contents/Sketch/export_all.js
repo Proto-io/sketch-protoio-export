@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.07";
+var version="1.08";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -360,9 +360,12 @@ var export_mask_layer = function(layer, mask_index,parentName,parentID,og_mask_l
     var l = toBeRemoved[i]
     [l removeFromParent]
   }
-  
-  [layer_copy unregisterAsSymbolIfNecessary]
 
+  try{
+      [layer_copy unregisterAsSymbolIfNecessary]
+    }catch(e){
+      //compatibility with Sketch 3.7
+  }
   var fileName=[mask_layer name]+"~"+[og_mask_layer objectID]+".png";
   fileName=escapeFilename(fileName);
   var outFile=outFolder+fileName;
