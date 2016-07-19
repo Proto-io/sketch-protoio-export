@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.08";
+var version="1.09";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -372,13 +372,20 @@ var export_mask_layer = function(layer, mask_index,parentName,parentID,og_mask_l
 
   var sliceLayer=[MSSliceLayer sliceLayerFromLayer:mask_layer]
   var exportOptions=[sliceLayer exportOptions]
+  
   try{
       [[exportOptions sizes] removeAllObjects];
       var exportSize = [exportOptions addExportSize]
   }catch(e){
-      //compatibility with Sketch 3.5
-      [[exportOptions exportFormats] removeAllObjects];
-      var exportSize = [exportOptions addExportFormat]
+            //compatibility with Sketch 3.5
+            try{
+              [[exportOptions exportFormats] removeAllObjects];
+            }catch(e){
+              //compatibility with Sketch 3.9 
+              [exportOptions removeAllExportFormats];
+            }
+    var exportSize = [exportOptions addExportFormat];
+
   }
   
 
@@ -449,17 +456,21 @@ function export_layer(ogLayer,parentName,parentID){
       var exportSize = [exportOptions addExportSize]
   }catch(e){
       //compatibility with Sketch 3.5
-      [[exportOptions exportFormats] removeAllObjects];
+      try{
+        [[exportOptions exportFormats] removeAllObjects];
+      }catch(e){
+        //compatibility with Sketch 3.9 
+        [exportOptions removeAllExportFormats];
+      }
       var exportSize = [exportOptions addExportFormat]
   }
-  
   
   [exportSize setScale:export_scale]
   try{
       var exportSizes=[exportOptions sizes]
   }catch(e){
     //compatibility with Sketch 3.5
-      var exportSizes=[exportOptions exportFormats]
+    var exportSizes=[exportOptions exportFormats]  
   }
   
   try {
