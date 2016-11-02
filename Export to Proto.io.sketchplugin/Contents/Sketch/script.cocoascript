@@ -19,7 +19,7 @@ var onExportSelectedArboards = function(context){
 	if([selection count]>0){
 	  for (var i=0; i<[selection count]; i++) {
 			var layer = [selection objectAtIndex:i];
-			if([layer class]=="MSArtboardGroup"){
+			if([layer class]=="MSArtboardGroup" || isArtboard(layer)){
 				aSelectedArtboards.push(layer);
 			}
 			log([layer class]+ ": " +[layer name]);
@@ -79,4 +79,16 @@ function evalContext(context){
 function log(message){
     [doc showMessage:message];
     print(message);
+}
+
+var isArtboard=function(layer){
+	var artboards=[doc artboards];
+	var layerId=[layer objectID];
+	for (var n=0;n<[artboards count];n++){
+		var artboardId=[[artboards objectAtIndex:n] objectID];
+		if(layerId==artboardId){
+			return true;
+		}
+	}
+	return false;
 }
