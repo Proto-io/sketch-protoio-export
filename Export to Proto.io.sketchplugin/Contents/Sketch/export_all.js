@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.10";
+var version="1.11";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -397,7 +397,14 @@ var export_mask_layer = function(layer, mask_index,parentName,parentID,og_mask_l
   if(okToExport(sliceId)){
     [doc saveArtboardOrSlice:sliceLayer toFile:outFile];  
   }
-  var bounds=[MSSliceTrimming trimmedRectForSlice:sliceLayer]; 
+  try{
+    var bounds=[MSSliceTrimming trimmedRectForSlice:sliceLayer]; 
+  }catch(e){
+    //compatibility with sketch 41
+    var ancestry=[MSImmutableLayerAncestry ancestryWithMSLayer:sliceLayer]
+    var bounds=[MSSliceTrimming trimmedRectForLayerAncestry:ancestry]; 
+  }
+  
   
   var exportedPosition={'x':""+eval((bounds.origin.x-offset)*export_scale),'y':""+eval((bounds.origin.y-offset)*export_scale)}
   var exportedSize={'width':""+eval(bounds.size.width*export_scale),'height':""+eval(bounds.size.height*export_scale)}
@@ -493,7 +500,15 @@ function export_layer(ogLayer,parentName,parentID){
   
 
   var sliceLayer=[MSSliceLayer sliceLayerFromLayer:layer_copy];
-  var bounds=[MSSliceTrimming trimmedRectForSlice:sliceLayer]; 
+
+  try{
+    var bounds=[MSSliceTrimming trimmedRectForSlice:sliceLayer]; 
+  }catch(e){
+    //compatibility with sketch 41
+    var ancestry=[MSImmutableLayerAncestry ancestryWithMSLayer:sliceLayer]
+    var bounds=[MSSliceTrimming trimmedRectForLayerAncestry:ancestry]; 
+  }
+
   [sliceLayer removeFromParent];        
   [layer_copy removeFromParent];
 
