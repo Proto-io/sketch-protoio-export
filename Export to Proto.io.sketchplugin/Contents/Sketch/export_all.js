@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.12";
+var version="1.13";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -880,7 +880,14 @@ function  escapeFilename (acFilename) {
      acFilename = acFilename.replace(/[>]/g, "-");
      acFilename = acFilename.replace(/[""]/g, '-');
      acFilename = acFilename.replace(/[|]/g, "-");
-     acFilename=acFilename.normalize('NFD').replace(/[\u0300-\u036f]/g,""); //Remove accented characters and diacritics
+     try{
+      //temporarily remove accented character fix because .normalize is not supported by older OSX versions
+      //will look for an alternative function
+      acFilename=acFilename.normalize('NFD').replace(/[\u0300-\u036f]/g,""); //Remove accented characters and diacritics 
+     }catch(e){
+
+     }
+     
      return acFilename.trim();
 }
 
