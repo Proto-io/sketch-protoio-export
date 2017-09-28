@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.13";
+var version="1.14";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -826,11 +826,10 @@ function buildArchive(){
     //alert(outFolder)
     var task = [[NSTask alloc] init];
 
-    var argsArray = [NSArray arrayWithObjects:"-r","../"+outPackageFile,"./", nil];
-    if(apVersion){
-      //DNF: check uniqueness in future versions
-      argsArray = [NSArray arrayWithObjects:"-r","../"+outPackageFile+".protoio","./", nil]; //this works when selecting dir instead of filename
-    }
+    var argsArray=[[NSMutableArray alloc] initWithCapacity:3];
+    [argsArray addObject:@"-r"];
+    [argsArray addObject:[NSString stringWithFormat:@"../%@.protoio",outPackageFile]];
+    [argsArray addObject:@"./"];
 
     [task setCurrentDirectoryPath:outFolder];
     [task setLaunchPath:"/usr/bin/zip"];
