@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.15";
+var version="1.16";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -666,8 +666,8 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
 
             maskLayerSublayers = (isInstanceOfSymbol) ? [[mask_layer detachByReplacingWithGroup] layers] : [mask_layer layers];
             subLayersCount = [maskLayerSublayers count];
-            maskOriginalLayerSublayers = (isInstanceOfSymbol) ? [[og_mask_layer symbolMaster] layers] : [og_mask_layer layers];
-            originalParentID = (isInstanceOfSymbol) ? [[og_mask_layer symbolMaster] objectID] : [og_mask_layer  objectID];
+            maskOriginalLayerSublayers = (isInstanceOfSymbol) ? [[mask_layer symbolMaster] layers] : [og_mask_layer layers];
+            originalParentID = sliceId;//(isInstanceOfSymbol) ? [[mask_layer symbolMaster] objectID] : [og_mask_layer  objectID];
 
             var countSymbolSublayers = function countSubLayers(sublayer, countedSublayers){
 
