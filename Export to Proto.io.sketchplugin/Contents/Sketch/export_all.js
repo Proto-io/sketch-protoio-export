@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.16";
+var version="1.17";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -439,7 +439,8 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
                 //alert("check if need to loop from this child:"+maskExportStuff.lastChildExported);
                 if(maskExportStuff.lastChildExported!=i){
                     //alert("resuming mask export at layer"+maskExportStuff.lastChildExported);
-                    var childItemsResume=processExportableChildren(parentLayer,layers,parentName,parentID,{loopFrom:maskExportStuff.lastChildExported}, groupRotation, groupFlipped, originalSymbolParentLayer, (originalSymbolParentLayer) ? [originalSymbolLayer layers] : originalSymbolLayer, symbolParentInstanceID);
+
+                    var childItemsResume=processExportableChildren(parentLayer,layers,parentName,parentID,{loopFrom:maskExportStuff.lastChildExported}, groupRotation, groupFlipped, originalSymbolParentLayer, originalLayersForSymbol, symbolParentInstanceID);
                     for(var n=0;n<childItemsResume.length;n++){
                         childItemsResume[n].hidden=exportInvisibleLayer?"1":"0";
                         items.push(childItemsResume[n]);
