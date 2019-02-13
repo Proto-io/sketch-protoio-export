@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.17";
+var version="1.18";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -264,7 +264,8 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
                     //copy symbol to arboard and process it
 
                     if (isInstanceOfSymbol){
-                        var layer_copy=[[layer duplicate] detachByReplacingWithGroup];
+                    	const dublicatedLayer = [layer duplicate]
+                        var layer_copy= detachSymbolAsAGroup(dublicatedLayer);
                     } else {
                         var layer_copy=[layer duplicate];
                     }
@@ -665,7 +666,9 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
 
         if (isInstanceOfSymbol || isSymbolMaster ) {
 
-            maskLayerSublayers = (isInstanceOfSymbol) ? [[mask_layer detachByReplacingWithGroup] layers] : [mask_layer layers];
+			
+			const maskLayerSymbolAsGroup = detachSymbolAsAGroup(mask_layer);
+            maskLayerSublayers = (isInstanceOfSymbol) ? [maskLayerSymbolAsGroup layers] : [mask_layer layers];
             subLayersCount = [maskLayerSublayers count];
             maskOriginalLayerSublayers = (isInstanceOfSymbol) ? [[mask_layer symbolMaster] layers] : [og_mask_layer layers];
             originalParentID = sliceId;//(isInstanceOfSymbol) ? [[mask_layer symbolMaster] objectID] : [og_mask_layer  objectID];
@@ -1162,8 +1165,8 @@ function isSymbolInstance(layer){
         var copyLayer = [layer duplicate];
 
         try {
-            copyLayer = [copyLayer detachByReplacingWithGroup]
-                [copyLayer layers];
+            copyLayer = detachSymbolAsAGroup(copyLayer);
+            [copyLayer layers];
         } catch (error){
             // if (copyLayer){
             //     print("symbol with error " + [copyLayer name]);
@@ -1181,6 +1184,27 @@ function isSymbolInstance(layer){
     return isSymbol;
 
     // return [layer isMemberOfClass:[MSSymbolInstance class]] ];
+}
+
+function detachSymbolAsAGroup(layer) {
+    var newGroupFromSymbol = null;
+    
+    try {
+        // support for sketch version <= 52.2
+        newGroupFromSymbol = [layer detachByReplacingWithGroup];
+		// print(" <= 52.2 ");
+    } catch(error) {
+        try {
+            // support for sketch version >= 53
+            newGroupFromSymbol = [layer detachStylesAndReplaceWithGroupRecursively: false];
+			// print(" >= 53 ");
+        } catch(newError){
+            newGroupFromSymbol = null
+        }
+    }
+    
+    return newGroupFromSymbol;
+    
 }
 
 function isMaskSublayerVisible(layer, firstMaskLayer){
