@@ -3,7 +3,7 @@
   "name" : "Proto.io Export",  
   "description" : "Give life to your Sketch designs! Export all or selected artboards to Proto.io screens, preserving layer positioning and hierarchy. By exporting to Proto.io you can link screens together, add interactions and animations.",
   "identifier" : "com.example.sketch.71576356-879b-4a58-b994-28f79ac6cc7b",
-  "version" : "1.18",
+  "version" : "1.19",
   "authorEmail" : "info@proto.io",
   "author" : "Protoio Inc.",
   "compatibleVersion": 41.0,

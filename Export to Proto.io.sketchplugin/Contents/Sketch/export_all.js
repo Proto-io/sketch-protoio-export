@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.18";
+var version="1.19";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -252,6 +252,31 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
 
 
                     originalSymbolLayer =  (isInstanceOfSymbol) ? [layer symbolMaster] : layer;
+                    
+                                        //copy symbol to arboard and process it
+					var includeBackgroundColorInInstance = 0;
+					
+                    if (isInstanceOfSymbol){
+                        
+                		try {
+                    		includeBackgroundColorInInstance = [originalSymbolLayer includeBackgroundColorInInstance];
+                		} catch (err) {
+                    
+                		}
+                		
+                		if (includeBackgroundColorInInstance) {
+                    		[originalSymbolLayer setIncludeBackgroundColorInInstance: false];
+                		}
+                		
+                		const dublicatedLayer = [layer duplicate];
+                		var layer_copy= detachSymbolAsAGroup(dublicatedLayer);
+                
+                		
+                        
+                    } else {
+                        var layer_copy=[layer duplicate];
+                    }
+                    
                     // get original symbol children
                     var originalSymbolChildren = (originalSymbolLayer) ? [originalSymbolLayer layers] : [[layer symbolMaster] layers];
 
@@ -259,18 +284,6 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
                     if (originalSymbolChildren && [originalSymbolChildren count] == 1 &&  is_group([originalSymbolChildren objectAtIndex:0])){
                         [[[originalSymbolChildren objectAtIndex:0] exportOptions] removeAllExportFormats];
                     }
-
-
-                    //copy symbol to arboard and process it
-
-                    if (isInstanceOfSymbol){
-                    	const dublicatedLayer = [layer duplicate]
-                        var layer_copy= detachSymbolAsAGroup(dublicatedLayer);
-                    } else {
-                        var layer_copy=[layer duplicate];
-                    }
-
-
 
 
                     var childLayers=[[NSArray alloc] init];
@@ -317,6 +330,11 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
 
 
                     var childItems=processExportableChildren(layer_copy,childLayers,parentName+"/"+[layer name],parentID+"/"+originalObjectID, {}, groupRotation, groupFlipped, originalSymbolLayer, originalSymbolChildren, symbolParentInstanceID);
+                    
+                    if (includeBackgroundColorInInstance) {
+                    	[originalSymbolLayer setIncludeBackgroundColorInInstance: true];
+                	}
+                    
                 }else{
                     groupFlipped = getFlippedProperties(Object.assign({}, groupFlipped), layer);
 
