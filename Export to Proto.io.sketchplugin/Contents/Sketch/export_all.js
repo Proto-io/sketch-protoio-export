@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.19";
+var version="1.20";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -257,23 +257,30 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
 					var includeBackgroundColorInInstance = 0;
 					
                     if (isInstanceOfSymbol){
+                		
+                        const dublicatedLayer = [layer duplicate];
                         
-                		try {
-                    		includeBackgroundColorInInstance = [originalSymbolLayer includeBackgroundColorInInstance];
-                		} catch (err) {
-                    
-                		}
-                		
-                		if (includeBackgroundColorInInstance) {
-                    		[originalSymbolLayer setIncludeBackgroundColorInInstance: false];
-                		}
-                		
-                		const dublicatedLayer = [layer duplicate];
-                		var layer_copy= detachSymbolAsAGroup(dublicatedLayer);
-                
-                		
+                        try {
+                            if (isSymbolMaster) {
+                                includeBackgroundColorInInstance = [dublicatedLayer includeBackgroundColorInInstance];
+                            } else {
+                                includeBackgroundColorInInstance = [[dublicatedLayer symbolMaster] includeBackgroundColorInInstance];
+                            }
+                        } catch (err) {
+                            print("Error " + err); 
+                        }
                         
-                    } else {
+                        if (includeBackgroundColorInInstance) {
+                            if (isSymbolMaster) {
+                                [dublicatedLayer setIncludeBackgroundColorInInstance: false];
+                            } else {
+                                [[dublicatedLayer symbolMaster] setIncludeBackgroundColorInInstance: false];
+                            }
+                        }
+                        
+                        var layer_copy=detachSymbolAsAGroup(dublicatedLayer);
+                        
+                    }else {
                         var layer_copy=[layer duplicate];
                     }
                     
@@ -332,8 +339,12 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
                     var childItems=processExportableChildren(layer_copy,childLayers,parentName+"/"+[layer name],parentID+"/"+originalObjectID, {}, groupRotation, groupFlipped, originalSymbolLayer, originalSymbolChildren, symbolParentInstanceID);
                     
                     if (includeBackgroundColorInInstance) {
-                    	[originalSymbolLayer setIncludeBackgroundColorInInstance: true];
-                	}
+                        if (isSymbolMaster) {
+                            [originalSymbolLayer setIncludeBackgroundColorInInstance: true];
+                        } else {
+                            [[layer symbolMaster] setIncludeBackgroundColorInInstance: true];
+                        }
+                    }
                     
                 }else{
                     groupFlipped = getFlippedProperties(Object.assign({}, groupFlipped), layer);
@@ -680,10 +691,26 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
         var maskOriginalLayerSublayers;
 
 
-
-
         if (isInstanceOfSymbol || isSymbolMaster ) {
 
+            var includeBackgroundColorInInstance = 0;
+            try {    
+                if (isInstanceOfSymbol) {
+                    includeBackgroundColorInInstance = [[mask_layer symbolMaster] includeBackgroundColorInInstance];
+                } else {
+                    includeBackgroundColorInInstance = [mask_layer includeBackgroundColorInInstance];
+                }
+            } catch (err) {
+                print("Error " + err); 
+            }
+
+            if (includeBackgroundColorInInstance) {
+                if (isInstanceOfSymbol) {
+                    [[mask_layer symbolMaster] setIncludeBackgroundColorInInstance: false];
+                } else {
+                    [mask_layer setIncludeBackgroundColorInInstance: false];
+                }
+            }
 			
 			const maskLayerSymbolAsGroup = detachSymbolAsAGroup(mask_layer);
             maskLayerSublayers = (isInstanceOfSymbol) ? [maskLayerSymbolAsGroup layers] : [mask_layer layers];
@@ -720,8 +747,20 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
 
             }
 
-            // print("counted sublayers Original " + countSymbolSublayers(originalSymbolChildren));
-            // print("counted sublayers " + countSymbolSublayers(childLayers));
+            try{
+                if (includeBackgroundColorInInstance) {
+                    if (isInstanceOfSymbol) {
+                        [[mask_layer symbolMaster] setIncludeBackgroundColorInInstance: true];
+                    } else {
+                        [mask_layer setIncludeBackgroundColorInInstance: true];
+                    }
+                }
+            } catch (err) {
+                print("Error " + err); 
+            }
+
+            // print("counted sublayers Original " + maskOriginalLayerSublayers);
+            // print("counted sublayers " + maskLayerSublayers);
 
         } else {
 
