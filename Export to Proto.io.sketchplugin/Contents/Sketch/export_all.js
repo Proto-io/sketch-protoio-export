@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.20";
+var version="1.21";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -63,7 +63,7 @@ function loopPages(doc){
 function loopSelectedArboards(aArtboards){
     hiddenLayersInPage=[];
     var artboardsCount=aArtboards.length;
-    for (var i=0;i<artboardsCount;i++){
+    for (var i=artboardsCount - 1;i>=0;i--){
         var artboard=aArtboards[i];
         var artboardId=[artboard objectID];
         var screenTitle=[artboard name];
@@ -116,7 +116,7 @@ function loopArtboardsInPage(doc,page){
     [doc setCurrentPage:page]
     var artboardsCount=[[page artboards] count]
     totalArboardsInAllPages+=artboardsCount;
-    for (var i=0;i<artboardsCount;i++){
+    for (var i=artboardsCount - 1;i>=0;i--){
         var artboard=[[page artboards] objectAtIndex:i];
         var artboardId=[artboard objectID];
         var screenTitle=[artboard name];
