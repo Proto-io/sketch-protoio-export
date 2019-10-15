@@ -9,7 +9,7 @@ var globalSelectedArtboards=[];
 
 var onExportAll = function(context) {	
 	evalContext(context);
-	export_main();
+	export_main(null, context);
 };
 
 var onExportSelectedArboards = function(context){
@@ -29,7 +29,7 @@ var onExportSelectedArboards = function(context){
 			alert("No Artboards selected");
 		}else{
 			//alert("You selected "+selectedArboardsCount+" artboard"+(selectedArboardsCount==1?"":"s")+" for export\nUnfortunately the plugin doesn't do anything yet ;-)");
-			export_main(aSelectedArtboards);
+			export_main(aSelectedArtboards, context);
 		}
 
 	}else{
@@ -53,7 +53,7 @@ var onExportSelectedItems = function(context){
 		alert("Select one or more items")	
 	}else{
 
-		export_selected_items_main(selection,globalSelectedArtboards);
+		export_selected_items_main(selection,globalSelectedArtboards, context);
 	}
 	
 }

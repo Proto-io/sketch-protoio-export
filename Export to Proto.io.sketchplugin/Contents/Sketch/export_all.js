@@ -34,12 +34,13 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.21";
+var version="1.23";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
 var startTime;
 var endTime;
+var context;
 
 
 function loopPages(doc){
@@ -769,6 +770,8 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
             maskOriginalLayerSublayers = [og_mask_layer layers];
 
         }
+        
+        mask_layer.name = removeEmojisFromLayerName([mask_layer name]).trim();
 
         var newExportedItem =  {
             'id':""+ sliceId,
@@ -803,8 +806,12 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
     } else {
 
 
-        var fileName=removeEmojisFromLayerName([mask_layer name]).trim()+"~"+hashLayerId(sliceId)+".png";
+		mask_layer.name = removeEmojisFromLayerName([mask_layer name]).trim();
+
+        var fileName=[mask_layer name] + "~"+hashLayerId(sliceId)+".png";
+        
         fileName=escapeFilename(fileName);
+        
         var outFile=outFolder+fileName;
 
 
@@ -854,6 +861,7 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
 
         //export the main mask layer
         var sliceLayer=[MSSliceLayer sliceLayerFromLayer:mask_layer]
+        
         try{
             var bounds=[MSSliceTrimming trimmedRectForSlice:sliceLayer];
         }catch(e){
@@ -992,21 +1000,27 @@ function export_layer(ogLayer,parentName,parentID, totalGroupRotation, groupFlip
     if (symbolParentInstanceID) {
         sliceId = symbolParentInstanceID + "-" + sliceId;
     }
-
+    
+    
     var sliceName=removeEmojisFromLayerName([ogLayer name]).trim();
     var className=[ogLayer className]; //alexiso
-
+	layer_copy.name = sliceName;
+	
     // print("Slice ID " + sliceId + " " + [ogLayer name])
     // print("Parent ID " + symbolParentInstanceID)
 
-    var fileName=[ogLayer name]+"~"+hashLayerId(sliceId)+".png";
+    var fileName=[layer_copy name]+"~"+hashLayerId(sliceId)+".png";
+    
     if(([layer_copy className]=="MSArtboardGroup")){
         [layer_copy setIncludeBackgroundColorInExport:true];
         [layer_copy setHasBackgroundColor:true];
         fileName=sliceId+".png";
     }
+    
     fileName=escapeFilename(fileName);
+    
     var outFile=outFolder+fileName;
+    
     if ([file_manager fileExistsAtPath:outFile]) {
         log("Duplicate layer name: "+fileName);
 
@@ -1136,6 +1150,13 @@ function removeEmojisFromLayerName(name){
     ];
 
     name = name.replace(new RegExp(ranges.join('|'), 'g'), '');
+    
+    try{
+        encodeURIComponent(name);
+    } catch (e) {
+        name= '?';
+	}
+    
     return name;
 
 }
@@ -1472,8 +1493,72 @@ function doStuff(aArtboards){
 }
 
 function doConfirm(message){
+
     var alert=[NSAlert alertWithMessageText:"Export "+message+" to Proto.io" defaultButton:"Export" alternateButton:"Cancel" otherButton:"" informativeTextWithFormat:""];
-    var accessory = [[NSView alloc] initWithFrame:NSMakeRect(0,0,300,110)];
+    var accessory = [[NSView alloc] initWithFrame:NSMakeRect(0,0,300,170)];
+
+    // background for the tip
+    var backgroundLabel=[[NSTextField alloc] initWithFrame:NSMakeRect(0,115,298,52)];
+    backgroundLabel.setWantsLayer_(true);
+    backgroundLabel.editable=false;
+    [backgroundLabel setBezelStyle:NSBezelStyleRounded];
+    // backgroundLabel.layer_.setCornerRadius_(4.0);
+    // .drawsBackground = true;
+    [backgroundLabel setDrawsBackground:true];
+    backgroundLabel.backgroundColor= [NSColor blackColor];
+    [accessory addSubview:backgroundLabel];
+
+    // tip image
+    var imageViewer=[[NSImageView alloc] initWithFrame:NSMakeRect(10.5,135,20.5,20)];
+    [imageViewer setImage:NSImage.alloc().initByReferencingFile(context.plugin.urlForResourceNamed("tip-icon.png").path())];
+    [accessory addSubview:imageViewer];
+
+    //tip word
+    var tf1 = [[NSTextField alloc] initWithFrame:CGRectMake(35, 125, 260, 31)];
+    [tf1 setFont:[NSFont systemFontOfSize:11]];
+    tf1.editable=false;
+    [tf1 setAlignment:0];
+    tf1.bordered = false;
+    tf1.drawsBackground = false;
+    var attributedString = NSMutableAttributedString.new().initWithString("Tip: For best performance, use '@' in front of group names to export groups as single images.");
+    var range = NSMakeRange(5,20)
+    var accentColor = NSColor.controlAccentColor()
+    attributedString.addAttribute_value_range(NSForegroundColorAttributeName, accentColor, range);
+    attributedString.addAttribute_value_range(NSFontAttributeName, [NSFont systemFontOfSize:11], range);
+    attributedString.addAttribute_value_range(NSUnderlineStyleAttributeName, NSUnderlineStyleSingle, range);
+    attributedString.fixAttributesInRange(range)
+
+    range = NSMakeRange(0,4)
+    attributedString.addAttribute_value_range(NSFontAttributeName, [NSFont systemFontOfSize:11 weight: NSFontWeightBold], range);
+
+    tf1.setAttributedStringValue(attributedString)
+    // tf1.stringValue="Tip: For best performance, use '@' in front of group names to export groups as single images.";
+    [accessory addSubview:tf1];
+
+    //link button above For best performance
+    var tf2 = [[NSButton alloc] initWithFrame:NSMakeRect(63, 140, 113, 11)];
+    [tf2 setTitle:""]
+    tf2.bordered = false;
+    tf2.drawsBackground = false;
+    [tf2 setCOSJSTargetFunction:function(sender) {
+        [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://support.proto.io/hc/en-us/articles/360032784931"]];
+    }]
+    [accessory addSubview:tf2];
+
+    // //first one
+	// var tf = [[NSTextField alloc] initWithFrame:CGRectMake(0, 115, 300, 50)];
+    // tf.textColor = [NSColor colorWithRed:0/256.0 green:84/256.0 blue:129/256.0 alpha:1.0];
+    // tf.font = [NSFont fontWithName:@"Helvetica-Bold" size:25];
+    // tf.backgroundColor=[NSColor whiteColor];
+    // tf.setEditable_(false);
+    // [tf setAlignment:0];
+    // tf.bordered = false;
+    // tf.setWantsLayer_(true);
+    // tf.setCornerRadius_(4.0);
+	// tf.setDrawsBackground_(false);
+    // tf.stringValue="Tip: For best performance, use '@' in front of group names to export groups as single images.";
+
+    // [accessory addSubview:tf];
 
     var checkbox = [[NSButton alloc] initWithFrame:NSMakeRect(0,80,300,25)];
     [checkbox setButtonType:NSSwitchButton];
@@ -1566,7 +1651,8 @@ function doConfirm(message){
 }
 
 
-function export_main(aArtboards) {
+function export_main(aArtboards, ctx) {
+	context = ctx;
     setStartTime();
     docName=[doc displayName].replace(".sketch","");
     initialPage=[doc currentPage];
@@ -1591,11 +1677,12 @@ function export_main(aArtboards) {
 }
 
 
-function export_selected_items_main(selectedItems,selectedArboards){
+function export_selected_items_main(selectedItems,selectedArboards, ctx){
+	context = ctx
     setStartTime();
     exportSelectedItemsOnly=true;
     extendSelection(selectedItems);
-    export_main(selectedArboards);
+    export_main(selectedArboards, ctx);
 
 }
 
