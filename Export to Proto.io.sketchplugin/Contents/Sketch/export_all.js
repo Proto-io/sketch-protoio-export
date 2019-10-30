@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.23";
+var version="1.24";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -1511,19 +1511,20 @@ function doConfirm(message){
     // tip image
     var imageViewer=[[NSImageView alloc] initWithFrame:NSMakeRect(10.5,135,20.5,20)];
     [imageViewer setImage:NSImage.alloc().initByReferencingFile(context.plugin.urlForResourceNamed("tip-icon.png").path())];
+    imageViewer.setWantsLayer_(true);
     [accessory addSubview:imageViewer];
 
     //tip word
     var tf1 = [[NSTextField alloc] initWithFrame:CGRectMake(35, 125, 260, 31)];
     [tf1 setFont:[NSFont systemFontOfSize:11]];
     tf1.editable=false;
+    tf1.setWantsLayer_(true);
     [tf1 setAlignment:0];
     tf1.bordered = false;
     tf1.drawsBackground = false;
     var attributedString = NSMutableAttributedString.new().initWithString("Tip: For best performance, use '@' in front of group names to export groups as single images.");
     var range = NSMakeRange(5,20)
-    var accentColor = NSColor.controlAccentColor()
-    attributedString.addAttribute_value_range(NSForegroundColorAttributeName, accentColor, range);
+    attributedString.addAttribute_value_range(NSForegroundColorAttributeName, NSColor.linkColor(), range);
     attributedString.addAttribute_value_range(NSFontAttributeName, [NSFont systemFontOfSize:11], range);
     attributedString.addAttribute_value_range(NSUnderlineStyleAttributeName, NSUnderlineStyleSingle, range);
     attributedString.fixAttributesInRange(range)
