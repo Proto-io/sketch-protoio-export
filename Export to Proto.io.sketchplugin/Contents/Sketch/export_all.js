@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.24";
+var version="1.25";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -251,14 +251,13 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
                     // print("ID " + originalObjectID);
                     // print("Name " + [layer name]);
 
-
                     originalSymbolLayer =  (isInstanceOfSymbol) ? [layer symbolMaster] : layer;
                     
                                         //copy symbol to arboard and process it
-					var includeBackgroundColorInInstance = 0;
-					
+                    var includeBackgroundColorInInstance = 0;
+                    
                     if (isInstanceOfSymbol){
-                		
+                        
                         const dublicatedLayer = [layer duplicate];
                         
                         try {
@@ -280,6 +279,10 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
                         }
                         
                         var layer_copy=detachSymbolAsAGroup(dublicatedLayer);
+
+                        if(!layer.parentObject()) { 
+                            layer.parentObject =  layer_copy.parentObject() 
+                        }
                         
                     }else {
                         var layer_copy=[layer duplicate];
@@ -712,8 +715,13 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
                     [mask_layer setIncludeBackgroundColorInInstance: false];
                 }
             }
-			
-			const maskLayerSymbolAsGroup = detachSymbolAsAGroup(mask_layer);
+            
+            const maskLayerSymbolAsGroup = detachSymbolAsAGroup(mask_layer);
+
+            if(!mask_layer.parentObject()) {
+                mask_layer.parentObject = maskLayerSymbolAsGroup.parentObject() 
+            }
+
             maskLayerSublayers = (isInstanceOfSymbol) ? [maskLayerSymbolAsGroup layers] : [mask_layer layers];
             subLayersCount = [maskLayerSublayers count];
             maskOriginalLayerSublayers = (isInstanceOfSymbol) ? [[mask_layer symbolMaster] layers] : [og_mask_layer layers];
@@ -806,7 +814,7 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
     } else {
 
 
-		mask_layer.name = removeEmojisFromLayerName([mask_layer name]).trim();
+        mask_layer.name = removeEmojisFromLayerName([mask_layer name]).trim();
 
         var fileName=[mask_layer name] + "~"+hashLayerId(sliceId)+".png";
         
@@ -857,17 +865,16 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
             [doc saveArtboardOrSlice:slice toFile:outFile];
         }
 
-
-
         //export the main mask layer
         var sliceLayer=[MSSliceLayer sliceLayerFromLayer:mask_layer]
+        [MSSliceTrimming trimSlice: sliceLayer];
         
         try{
             var bounds=[MSSliceTrimming trimmedRectForSlice:sliceLayer];
         }catch(e){
             //compatibility with sketch 41
-            var ancestry=[MSImmutableLayerAncestry ancestryWithMSLayer:sliceLayer]
-            var bounds=[MSSliceTrimming trimmedRectForLayerAncestry:ancestry];
+            // var ancestry=[MSImmutableLayerAncestry ancestryWithMSLayer:sliceLayer]
+            var bounds=[MSSliceTrimming trimmedRectForLayerAncestry:sliceLayer.ancestry()];
         }
 
 
@@ -1004,8 +1011,8 @@ function export_layer(ogLayer,parentName,parentID, totalGroupRotation, groupFlip
     
     var sliceName=removeEmojisFromLayerName([ogLayer name]).trim();
     var className=[ogLayer className]; //alexiso
-	layer_copy.name = sliceName;
-	
+    layer_copy.name = sliceName;
+    
     // print("Slice ID " + sliceId + " " + [ogLayer name])
     // print("Parent ID " + symbolParentInstanceID)
 
@@ -1070,14 +1077,16 @@ function export_layer(ogLayer,parentName,parentID, totalGroupRotation, groupFlip
     }
 
     var sliceLayer=[MSSliceLayer sliceLayerFromLayer:layer_copy];
+    [MSSliceTrimming trimSlice: sliceLayer];
 
     try{
         var bounds=[MSSliceTrimming trimmedRectForSlice:sliceLayer];
     }catch(e){
         //compatibility with sketch 41
-        var ancestry=[MSImmutableLayerAncestry ancestryWithMSLayer:sliceLayer]
-        var bounds=[MSSliceTrimming trimmedRectForLayerAncestry:ancestry];
+        // var ancestry=[MSImmutableLayerAncestry ancestryWithMSLayer:sliceLayer]
+        var bounds=[MSSliceTrimming trimmedRectForLayerAncestry:sliceLayer.ancestry()];
     }
+
 
     //alert(bounds.origin.y);
     //alert(coords.y);
@@ -1155,7 +1164,7 @@ function removeEmojisFromLayerName(name){
         encodeURIComponent(name);
     } catch (e) {
         name= '?';
-	}
+    }
     
     return name;
 
@@ -1270,12 +1279,12 @@ function detachSymbolAsAGroup(layer) {
     try {
         // support for sketch version <= 52.2
         newGroupFromSymbol = [layer detachByReplacingWithGroup];
-		// print(" <= 52.2 ");
+        // print(" <= 52.2 ");
     } catch(error) {
         try {
             // support for sketch version >= 53
             newGroupFromSymbol = [layer detachStylesAndReplaceWithGroupRecursively: false];
-			// print(" >= 53 ");
+            // print(" >= 53 ");
         } catch(newError){
             newGroupFromSymbol = null
         }
@@ -1547,7 +1556,7 @@ function doConfirm(message){
     [accessory addSubview:tf2];
 
     // //first one
-	// var tf = [[NSTextField alloc] initWithFrame:CGRectMake(0, 115, 300, 50)];
+    // var tf = [[NSTextField alloc] initWithFrame:CGRectMake(0, 115, 300, 50)];
     // tf.textColor = [NSColor colorWithRed:0/256.0 green:84/256.0 blue:129/256.0 alpha:1.0];
     // tf.font = [NSFont fontWithName:@"Helvetica-Bold" size:25];
     // tf.backgroundColor=[NSColor whiteColor];
@@ -1556,7 +1565,7 @@ function doConfirm(message){
     // tf.bordered = false;
     // tf.setWantsLayer_(true);
     // tf.setCornerRadius_(4.0);
-	// tf.setDrawsBackground_(false);
+    // tf.setDrawsBackground_(false);
     // tf.stringValue="Tip: For best performance, use '@' in front of group names to export groups as single images.";
 
     // [accessory addSubview:tf];
@@ -1653,7 +1662,7 @@ function doConfirm(message){
 
 
 function export_main(aArtboards, ctx) {
-	context = ctx;
+    context = ctx;
     setStartTime();
     docName=[doc displayName].replace(".sketch","");
     initialPage=[doc currentPage];
@@ -1679,7 +1688,7 @@ function export_main(aArtboards, ctx) {
 
 
 function export_selected_items_main(selectedItems,selectedArboards, ctx){
-	context = ctx
+    context = ctx
     setStartTime();
     exportSelectedItemsOnly=true;
     extendSelection(selectedItems);
