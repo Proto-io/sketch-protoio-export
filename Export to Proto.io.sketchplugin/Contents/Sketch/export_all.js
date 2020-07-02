@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.25";
+var version="1.26";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -1375,10 +1375,16 @@ function getTransitionName(transitionNumber) {
 
 function getUICoordinates_exp (layer){
     // This returns the *exact* coordinates you see on Sketch's inspector
-    var  f = [layer frame],
-        x = [[layer absoluteRect] x],
-        y = [[layer absoluteRect] y],
-        ui = {
+    var  f = [layer frame];
+    try {
+        var x = [layer rulerX];
+        var y = [layer rulerY];
+    } catch(e) {
+        var x = [[layer absoluteRect] rulerX];
+        var y = [[layer absoluteRect] rulerY];
+    }
+    
+    var ui = {
             x: x,
             y:y,
             width: f.width(),
@@ -1388,10 +1394,17 @@ function getUICoordinates_exp (layer){
 }
 function getUICoordinates (layer){
     // This returns the *exact* coordinates you see on Sketch's inspector
-    var  f = [layer frame],
-        x = [[layer absoluteRect] rulerX],
-        y = [[layer absoluteRect] rulerY],
-        ui = {
+    var  f = [layer frame];
+    
+    try {
+        var x = [layer rulerX];
+        var y = [layer rulerY];
+    } catch(e) {
+        var x = [[layer absoluteRect] rulerX];
+        var y = [[layer absoluteRect] rulerY];
+    }
+    
+    var ui = {
             x: x,
             y:y,
             width: f.width(),
