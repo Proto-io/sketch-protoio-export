@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.26";
+var version="1.27";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -903,8 +903,8 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
             var artboardOriginalRulerBase=[parentOrigArtboard rulerBase];
             var artboardOrigCoords=getUICoordinates_exp(parentOrigArtboard);
             offset = 0;
-            bounds.origin.x = coords.x -(-artboardOriginalRulerBase.x+artboardOrigCoords.x);
-            bounds.origin.y = coords.y -(-artboardOriginalRulerBase.y+artboardOrigCoords.y);
+            bounds.origin.x = coords.x; // -(-artboardOriginalRulerBase.x+artboardOrigCoords.x);
+            bounds.origin.y = coords.y; // -(-artboardOriginalRulerBase.y+artboardOrigCoords.y);
 
         } else if ( groupRotation !=0 &&  (groupRotation % 360) != 0 && subLayerIndex != 0) {
             var coords=getUICoordinates(og_mask_layer);
@@ -912,14 +912,16 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
             // var artboardOriginalRulerBase=[parentOrigArtboard rulerBase];
             // var artboardOrigCoords=getUICoordinates_exp(parentOrigArtboard);
             offset = 0;
-            bounds.origin.x = coords.x ; //-(-artboardOriginalRulerBase.x+artboardOrigCoords.x);
+            bounds.origin.x = coords.x; //-(-artboardOriginalRulerBase.x+artboardOrigCoords.x);
             bounds.origin.y = coords.y; // -(-artboardOriginalRulerBase.y+artboardOrigCoords.y);
 
-        } else {
-            //alert(sliceName+bounds.origin.x);
-            bounds.origin.x=bounds.origin.x-(-artboardRulerBase.x+artboardCoords.x);
-            bounds.origin.y=bounds.origin.y-(-artboardRulerBase.y+artboardCoords.y);
-        }
+        } 
+
+        // else {
+        //     //alert(sliceName+bounds.origin.x);
+        //     bounds.origin.x=bounds.origin.x-(-artboardRulerBase.x+artboardCoords.x);
+        //     bounds.origin.y=bounds.origin.y-(-artboardRulerBase.y+artboardCoords.y);
+        // }
 
 
         //alert(bounds.origin.x + addedToNewArtboard);
@@ -1112,13 +1114,15 @@ function export_layer(ogLayer,parentName,parentID, totalGroupRotation, groupFlip
         var parentOrigArtboard=[ogLayer valueForKeyPath:@"parentArtboard"];
         var artboardOriginalRulerBase=[parentOrigArtboard rulerBase];
         var artboardOrigCoords=getUICoordinates_exp(parentOrigArtboard);
-        bounds.origin.x = coords.x -(-artboardOriginalRulerBase.x+artboardOrigCoords.x);
-        bounds.origin.y = coords.y -(-artboardOriginalRulerBase.y+artboardOrigCoords.y);
-    } else {
-        //alert(sliceName+" bounds:"+bounds.origin.y+" artboardbase:"+artboardRulerBase.y+"pos:"+artboardCoords.y)
-        bounds.origin.x=bounds.origin.x-(-artboardRulerBase.x+artboardCoords.x);
-        bounds.origin.y=bounds.origin.y-(-artboardRulerBase.y+artboardCoords.y);
-    }
+        bounds.origin.x = coords.x// -(-artboardOriginalRulerBase.x+artboardOrigCoords.x);
+        bounds.origin.y = coords.y// -(-artboardOriginalRulerBase.y+artboardOrigCoords.y);
+    } 
+
+    // else {
+    //     //alert(sliceName+" bounds:"+bounds.origin.y+" artboardbase:"+artboardRulerBase.y+"pos:"+artboardCoords.y)
+    //     // bounds.origin.x=bounds.origin.x//-(-artboardRulerBase.x+artboardCoords.x);
+    //     // bounds.origin.y=bounds.origin.y//-(-artboardRulerBase.y+artboardCoords.y);
+    // }
 
     [sliceLayer removeFromParent];
     [layer_copy removeFromParent];
