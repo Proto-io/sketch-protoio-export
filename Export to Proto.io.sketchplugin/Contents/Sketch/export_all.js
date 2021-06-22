@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.27";
+var version="1.28";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -252,14 +252,14 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
                     // print("Name " + [layer name]);
 
                     originalSymbolLayer =  (isInstanceOfSymbol) ? [layer symbolMaster] : layer;
-                    
+
                                         //copy symbol to arboard and process it
                     var includeBackgroundColorInInstance = 0;
-                    
+
                     if (isInstanceOfSymbol){
-                        
+
                         const dublicatedLayer = [layer duplicate];
-                        
+
                         try {
                             if (isSymbolMaster) {
                                 includeBackgroundColorInInstance = [dublicatedLayer includeBackgroundColorInInstance];
@@ -267,9 +267,9 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
                                 includeBackgroundColorInInstance = [[dublicatedLayer symbolMaster] includeBackgroundColorInInstance];
                             }
                         } catch (err) {
-                            print("Error " + err); 
+                            print("Error " + err);
                         }
-                        
+
                         if (includeBackgroundColorInInstance) {
                             if (isSymbolMaster) {
                                 [dublicatedLayer setIncludeBackgroundColorInInstance: false];
@@ -277,17 +277,17 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
                                 [[dublicatedLayer symbolMaster] setIncludeBackgroundColorInInstance: false];
                             }
                         }
-                        
+
                         var layer_copy=detachSymbolAsAGroup(dublicatedLayer);
 
-                        if(!layer.parentObject()) { 
-                            layer.parentObject =  layer_copy.parentObject() 
+                        if(!layer.parentObject()) {
+                            layer.parentObject =  layer_copy.parentObject()
                         }
-                        
+
                     }else {
                         var layer_copy=[layer duplicate];
                     }
-                    
+
                     // get original symbol children
                     var originalSymbolChildren = (originalSymbolLayer) ? [originalSymbolLayer layers] : [[layer symbolMaster] layers];
 
@@ -341,7 +341,7 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
 
 
                     var childItems=processExportableChildren(layer_copy,childLayers,parentName+"/"+[layer name],parentID+"/"+originalObjectID, {}, groupRotation, groupFlipped, originalSymbolLayer, originalSymbolChildren, symbolParentInstanceID);
-                    
+
                     if (includeBackgroundColorInInstance) {
                         if (isSymbolMaster) {
                             [originalSymbolLayer setIncludeBackgroundColorInInstance: true];
@@ -349,7 +349,7 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
                             [[layer symbolMaster] setIncludeBackgroundColorInInstance: true];
                         }
                     }
-                    
+
                 }else{
                     groupFlipped = getFlippedProperties(Object.assign({}, groupFlipped), layer);
 
@@ -549,8 +549,8 @@ var export_mask_layer = function(layer, mask_index,parentName,parentID,og_mask_l
 
     [[[artboard frame] setWidth:[currentArtboard frame].width()]];
     [[[artboard frame] setHeight:[currentArtboard frame].height()]];
-    [[artboard frame] setTop:offset];
-    [[artboard frame] setLeft:offset];
+    [[artboard frame] setY:offset]; // setTop throws undefined function error, replaced with setY
+    [[artboard frame] setX:offset]; // setLeft throws undefined function error, replaced with setX
 
     if(!addedToNewArtboard){
         [[layer_copy frame] setX:0]; //this is the parent and happens to be an artboard that will be placed under the dummy artboard
@@ -698,14 +698,14 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
         if (isInstanceOfSymbol || isSymbolMaster ) {
 
             var includeBackgroundColorInInstance = 0;
-            try {    
+            try {
                 if (isInstanceOfSymbol) {
                     includeBackgroundColorInInstance = [[mask_layer symbolMaster] includeBackgroundColorInInstance];
                 } else {
                     includeBackgroundColorInInstance = [mask_layer includeBackgroundColorInInstance];
                 }
             } catch (err) {
-                print("Error " + err); 
+                print("Error " + err);
             }
 
             if (includeBackgroundColorInInstance) {
@@ -715,11 +715,11 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
                     [mask_layer setIncludeBackgroundColorInInstance: false];
                 }
             }
-            
+
             const maskLayerSymbolAsGroup = detachSymbolAsAGroup(mask_layer);
 
             if(!mask_layer.parentObject()) {
-                mask_layer.parentObject = maskLayerSymbolAsGroup.parentObject() 
+                mask_layer.parentObject = maskLayerSymbolAsGroup.parentObject()
             }
 
             maskLayerSublayers = (isInstanceOfSymbol) ? [maskLayerSymbolAsGroup layers] : [mask_layer layers];
@@ -765,7 +765,7 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
                     }
                 }
             } catch (err) {
-                print("Error " + err); 
+                print("Error " + err);
             }
 
             // print("counted sublayers Original " + maskOriginalLayerSublayers);
@@ -778,7 +778,7 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
             maskOriginalLayerSublayers = [og_mask_layer layers];
 
         }
-        
+
         mask_layer.name = removeEmojisFromLayerName([mask_layer name]).trim();
 
         var newExportedItem =  {
@@ -817,9 +817,9 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
         mask_layer.name = removeEmojisFromLayerName([mask_layer name]).trim();
 
         var fileName=[mask_layer name] + "~"+hashLayerId(sliceId)+".png";
-        
+
         fileName=escapeFilename(fileName);
-        
+
         var outFile=outFolder+fileName;
 
 
@@ -868,7 +868,7 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
         //export the main mask layer
         var sliceLayer=[MSSliceLayer sliceLayerFromLayer:mask_layer]
         [MSSliceTrimming trimSlice: sliceLayer];
-        
+
         try{
             var bounds=[MSSliceTrimming trimmedRectForSlice:sliceLayer];
         }catch(e){
@@ -915,7 +915,7 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
             bounds.origin.x = coords.x; //-(-artboardOriginalRulerBase.x+artboardOrigCoords.x);
             bounds.origin.y = coords.y; // -(-artboardOriginalRulerBase.y+artboardOrigCoords.y);
 
-        } 
+        }
 
         // else {
         //     //alert(sliceName+bounds.origin.x);
@@ -1009,27 +1009,27 @@ function export_layer(ogLayer,parentName,parentID, totalGroupRotation, groupFlip
     if (symbolParentInstanceID) {
         sliceId = symbolParentInstanceID + "-" + sliceId;
     }
-    
-    
+
+
     var sliceName=removeEmojisFromLayerName([ogLayer name]).trim();
     var className=[ogLayer className]; //alexiso
     layer_copy.name = sliceName;
-    
+
     // print("Slice ID " + sliceId + " " + [ogLayer name])
     // print("Parent ID " + symbolParentInstanceID)
 
     var fileName=[layer_copy name]+"~"+hashLayerId(sliceId)+".png";
-    
+
     if(([layer_copy className]=="MSArtboardGroup")){
         [layer_copy setIncludeBackgroundColorInExport:true];
         [layer_copy setHasBackgroundColor:true];
         fileName=sliceId+".png";
     }
-    
+
     fileName=escapeFilename(fileName);
-    
+
     var outFile=outFolder+fileName;
-    
+
     if ([file_manager fileExistsAtPath:outFile]) {
         log("Duplicate layer name: "+fileName);
 
@@ -1116,7 +1116,7 @@ function export_layer(ogLayer,parentName,parentID, totalGroupRotation, groupFlip
         var artboardOrigCoords=getUICoordinates_exp(parentOrigArtboard);
         bounds.origin.x = coords.x// -(-artboardOriginalRulerBase.x+artboardOrigCoords.x);
         bounds.origin.y = coords.y// -(-artboardOriginalRulerBase.y+artboardOrigCoords.y);
-    } 
+    }
 
     // else {
     //     //alert(sliceName+" bounds:"+bounds.origin.y+" artboardbase:"+artboardRulerBase.y+"pos:"+artboardCoords.y)
@@ -1163,13 +1163,13 @@ function removeEmojisFromLayerName(name){
     ];
 
     name = name.replace(new RegExp(ranges.join('|'), 'g'), '');
-    
+
     try{
         encodeURIComponent(name);
     } catch (e) {
         name= '?';
     }
-    
+
     return name;
 
 }
@@ -1279,7 +1279,7 @@ function isSymbolInstance(layer){
 
 function detachSymbolAsAGroup(layer) {
     var newGroupFromSymbol = null;
-    
+
     try {
         // support for sketch version <= 52.2
         newGroupFromSymbol = [layer detachByReplacingWithGroup];
@@ -1293,9 +1293,9 @@ function detachSymbolAsAGroup(layer) {
             newGroupFromSymbol = null
         }
     }
-    
+
     return newGroupFromSymbol;
-    
+
 }
 
 function isMaskSublayerVisible(layer, firstMaskLayer){
@@ -1387,7 +1387,7 @@ function getUICoordinates_exp (layer){
         var x = [[layer absoluteRect] rulerX];
         var y = [[layer absoluteRect] rulerY];
     }
-    
+
     var ui = {
             x: x,
             y:y,
@@ -1399,7 +1399,7 @@ function getUICoordinates_exp (layer){
 function getUICoordinates (layer){
     // This returns the *exact* coordinates you see on Sketch's inspector
     var  f = [layer frame];
-    
+
     try {
         var x = [layer rulerX];
         var y = [layer rulerY];
@@ -1407,7 +1407,7 @@ function getUICoordinates (layer){
         var x = [[layer absoluteRect] rulerX];
         var y = [[layer absoluteRect] rulerY];
     }
-    
+
     var ui = {
             x: x,
             y:y,
