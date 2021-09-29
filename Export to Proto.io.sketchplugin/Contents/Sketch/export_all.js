@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.28";
+var version="1.29";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -1283,19 +1283,26 @@ function detachSymbolAsAGroup(layer) {
     try {
         // support for sketch version <= 52.2
         newGroupFromSymbol = [layer detachByReplacingWithGroup];
-        // print(" <= 52.2 ");
-    } catch(error) {
+    } catch (errorLT52) {
         try {
-            // support for sketch version >= 53
+            // support for sketch version > 52.2 and < 76
+            // API function returns the top most group created for the symbol, the false arg means do not recurse
             newGroupFromSymbol = [layer detachStylesAndReplaceWithGroupRecursively: false];
-            // print(" >= 53 ");
-        } catch(newError){
-            newGroupFromSymbol = null
+        } catch (errorLT76) {
+            try {
+                // support for sketch version >= 76
+                // API functions now split into detachStylesAndReplaceWithGroup and detachStylesAndReplaceWithGroupRecursively
+                newGroupFromSymbol = [layer detachStylesAndReplaceWithGroup];
+            }
+            catch (errorLatest) {
+                // print("ERROR");
+                // print(errorLatest);
+                newGroupFromSymbol = null;
+            }
         }
     }
 
     return newGroupFromSymbol;
-
 }
 
 function isMaskSublayerVisible(layer, firstMaskLayer){
