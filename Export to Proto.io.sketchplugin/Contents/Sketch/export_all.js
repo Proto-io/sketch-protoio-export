@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.29";
+var version="1.30";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
