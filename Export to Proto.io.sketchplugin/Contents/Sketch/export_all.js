@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.30";
+var version="1.31";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -42,6 +42,18 @@ var startTime;
 var endTime;
 var context;
 
+function extractTrimmedSliceBounds(layer) {
+    let SliceTrimmingClass = NSClassFromString("SketchRendering.MSSliceTrimming") ?? NSClassFromString("MSSliceTrimming");
+    let exportRequestForSlice = MSExportRequest.exportRequestsFromLayerAncestry_(layer.ancestry()).firstObject()
+    exportRequestForSlice.setShouldTrim_(true);
+    let exporterForSlice = MSExporter.exporterForRequest_colorSpace_(exportRequestForSlice, nil);
+    let trimmedRectForLayerAncestry = SliceTrimmingClass.trimmedRectForLayerAncestry_(layer.ancestry())
+    layer.setAbsoluteBoundingBox_(trimmedRectForLayerAncestry);
+    let trimmedRect = exporterForSlice.trimmedBounds();
+    return NSMakeRect(trimmedRectForLayerAncestry.origin.x + trimmedRect.origin.x,
+        trimmedRectForLayerAncestry.origin.y + trimmedRect.origin.y,
+        trimmedRect.size.width, trimmedRect.size.height);
+}
 
 function loopPages(doc){
     log ("Looping pages");
@@ -867,14 +879,26 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
 
         //export the main mask layer
         var sliceLayer=[MSSliceLayer sliceLayerFromLayer:mask_layer]
-        [MSSliceTrimming trimSlice: sliceLayer];
+        var bounds = [sliceLayer rect];
 
         try{
-            var bounds=[MSSliceTrimming trimmedRectForSlice:sliceLayer];
+            [MSSliceTrimming trimSlice: sliceLayer];
+            bounds=[MSSliceTrimming trimmedRectForSlice:sliceLayer];
         }catch(e){
             //compatibility with sketch 41
             // var ancestry=[MSImmutableLayerAncestry ancestryWithMSLayer:sliceLayer]
-            var bounds=[MSSliceTrimming trimmedRectForLayerAncestry:sliceLayer.ancestry()];
+            try {
+                // works until version 95
+                bounds=[MSSliceTrimming trimmedRectForLayerAncestry:sliceLayer.ancestry()];
+            }
+            catch(e){
+                try {
+                    // works from version 96
+                    bounds = extractTrimmedSliceBounds(sliceLayer);
+                }
+                catch(e) {
+                }
+            }
         }
 
 
@@ -1079,14 +1103,26 @@ function export_layer(ogLayer,parentName,parentID, totalGroupRotation, groupFlip
     }
 
     var sliceLayer=[MSSliceLayer sliceLayerFromLayer:layer_copy];
-    [MSSliceTrimming trimSlice: sliceLayer];
+    var bounds = [sliceLayer rect];
 
     try{
-        var bounds=[MSSliceTrimming trimmedRectForSlice:sliceLayer];
+        [MSSliceTrimming trimSlice: sliceLayer];
+        bounds=[MSSliceTrimming trimmedRectForSlice:sliceLayer];
     }catch(e){
         //compatibility with sketch 41
         // var ancestry=[MSImmutableLayerAncestry ancestryWithMSLayer:sliceLayer]
-        var bounds=[MSSliceTrimming trimmedRectForLayerAncestry:sliceLayer.ancestry()];
+        try {
+            // works until version 95
+            bounds=[MSSliceTrimming trimmedRectForLayerAncestry:sliceLayer.ancestry()];
+        }
+        catch(e){
+            try {
+                // works from version 96
+                bounds = extractTrimmedSliceBounds(sliceLayer);
+            }
+            catch(e) {
+            }
+        }
     }
 
 
