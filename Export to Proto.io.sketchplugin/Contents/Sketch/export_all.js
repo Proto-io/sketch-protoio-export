@@ -34,7 +34,7 @@ var currentArtboard;
 var duplicateFileNameWarning=false;
 var apVersion=true;
 var minimalExportMode=true;
-var version="1.31";
+var version="1.32";
 var debugMode=false;
 var export_scale=1.0;
 var exportSelectedItemsOnly=false;
@@ -42,17 +42,25 @@ var startTime;
 var endTime;
 var context;
 
-function extractTrimmedSliceBounds(layer) {
+function extractTrimmedSliceBounds(rootArtboard, layer, original_layer, is_masked_layer = false, offset = 0, recursion_level=1) {
+    log(`${' '.repeat(recursion_level)} in extractTrimmedSliceBounds for layer ${layer.name()}`);
     let SliceTrimmingClass = NSClassFromString("SketchRendering.MSSliceTrimming") ?? NSClassFromString("MSSliceTrimming");
-    let exportRequestForSlice = MSExportRequest.exportRequestsFromLayerAncestry_(layer.ancestry()).firstObject()
+    let exportRequestForSlice = MSExportRequest.exportRequestsFromLayerAncestry_(original_layer.ancestry()).firstObject()
     exportRequestForSlice.setShouldTrim_(true);
     let exporterForSlice = MSExporter.exporterForRequest_colorSpace_(exportRequestForSlice, nil);
     let trimmedRectForLayerAncestry = SliceTrimmingClass.trimmedRectForLayerAncestry_(layer.ancestry())
-    layer.setAbsoluteBoundingBox_(trimmedRectForLayerAncestry);
+    // layer.setAbsoluteBoundingBox_(trimmedRectForLayerAncestry);
     let trimmedRect = exporterForSlice.trimmedBounds();
-    return NSMakeRect(trimmedRectForLayerAncestry.origin.x + trimmedRect.origin.x,
-        trimmedRectForLayerAncestry.origin.y + trimmedRect.origin.y,
-        trimmedRect.size.width, trimmedRect.size.height);
+    let boundsX = trimmedRectForLayerAncestry.origin.x + trimmedRect.origin.x;
+    let boundsY = trimmedRectForLayerAncestry.origin.y + trimmedRect.origin.y;
+    log(`${' '.repeat(recursion_level)} boundsX init to ${boundsX}`);
+    log(`${' '.repeat(recursion_level)} boundsY init to ${boundsY}`);
+    if (is_masked_layer) {
+        log(`${' '.repeat(recursion_level)} rootArtboard x is ${rootArtboard.frame().x()}`);
+        log(`${' '.repeat(recursion_level)} rootArtboard y is ${rootArtboard.frame().y()}`);
+    }
+
+    return NSMakeRect(boundsX, boundsY, trimmedRect.size.width, trimmedRect.size.height);
 }
 
 function loopPages(doc){
@@ -159,15 +167,16 @@ function exportArtboard(artboard){
     var artboardName=[artboard name];
     log("      processing artboard "+artboardName);
     currentArtboard=artboard;
-    var exportableChildren=processExportableChildren(artboard,[artboard layers],"","");
+    var exportableChildren=processExportableChildren(artboard, artboard,[artboard layers],"","");
     outFile=outFolder+"screen-"+artboardName+".png";
     log("      exporting artboard "+artboardName+" as "+outFile);
     return exportableChildren;
 }
 
-function processExportableChildren(parentLayer,layers,parentName,parentID,options, groupRotation, groupFlipped, originalSymbolParentLayer, originalLayersForSymbol, symbolParentInstanceID){
+function processExportableChildren(rootArtboard, parentLayer,layers,parentName,parentID,options, groupRotation, groupFlipped, originalSymbolParentLayer, originalLayersForSymbol, symbolParentInstanceID, recursion_level = 1){
     //loop through all children and hide those that are exportable
     //return an array of them
+    log(`${' '.repeat(recursion_level)} in processExportableChildren for parentLayer ${parentLayer.name()}`);
     var items=[];
 
     if (typeof groupRotation == "undefined") {
@@ -208,7 +217,8 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
         // }
 
 
-        var isMaskLayer=[layer hasClippingMask];
+        // Treat all layers as non-masks (is handled when calculating exported slice bounds)
+        var isMaskLayer = false //[layer hasClippingMask];
         var isInstanceOfSymbol=isSymbolInstance(layer);
 
         //var isExportable=[layer isLayerExportable]||(exportMode=="all" && !is_group(layer));
@@ -265,7 +275,7 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
 
                     originalSymbolLayer =  (isInstanceOfSymbol) ? [layer symbolMaster] : layer;
 
-                                        //copy symbol to arboard and process it
+                    //copy symbol to arboard and process it
                     var includeBackgroundColorInInstance = 0;
 
                     if (isInstanceOfSymbol){
@@ -352,7 +362,7 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
 
 
 
-                    var childItems=processExportableChildren(layer_copy,childLayers,parentName+"/"+[layer name],parentID+"/"+originalObjectID, {}, groupRotation, groupFlipped, originalSymbolLayer, originalSymbolChildren, symbolParentInstanceID);
+                    var childItems=processExportableChildren(rootArtboard, layer_copy,childLayers,parentName+"/"+[layer name],parentID+"/"+originalObjectID, {}, groupRotation, groupFlipped, originalSymbolLayer, originalSymbolChildren, symbolParentInstanceID,recursion_level+1);
 
                     if (includeBackgroundColorInInstance) {
                         if (isSymbolMaster) {
@@ -371,16 +381,16 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
 
                     var childItems;
                     if (originalSymbolLayer) {
-                        childItems=processExportableChildren(layer,[layer layers],parentName+"/"+[layer name],parentID+"/"+originalObjectID, {}, groupRotation, groupFlipped, originalSymbolLayer, [originalSymbolLayer layers], symbolParentInstanceID);
+                        childItems=processExportableChildren(rootArtboard, layer,[layer layers],parentName+"/"+[layer name],parentID+"/"+originalObjectID, {}, groupRotation, groupFlipped, originalSymbolLayer, [originalSymbolLayer layers], symbolParentInstanceID,recursion_level+1);
                     } else {
-                        childItems=processExportableChildren(layer,[layer layers],parentName+"/"+[layer name],parentID+"/"+originalObjectID, {}, groupRotation, groupFlipped);
+                        childItems=processExportableChildren(rootArtboard, layer,[layer layers],parentName+"/"+[layer name],parentID+"/"+originalObjectID, {}, groupRotation, groupFlipped, undefined, undefined, undefined, recursion_level+1);
                     }
 
 
                 }
 
                 //log(" TOTAL GROUP ROTATION "+groupRotation);
-                //var childItems=processExportableChildren(layer,[layer layers],parentName+"/"+[layer name],parentID+"/"+[layer objectID], {}, groupRotation, groupFlipped);
+                //var childItems=processExportableChildren(rootArtboard, layer,[layer layers],parentName+"/"+[layer name],parentID+"/"+[layer objectID], {}, groupRotation, groupFlipped);
                 groupRotation = 0;
                 groupFlipped.horizontal = false;
                 groupFlipped.vertical = false;
@@ -460,11 +470,11 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
             //export me and make invisible for parent to export correctly
             if(isMaskLayer){
                 //found mask all other siblings affected
-                var maskExportStuff=export_mask_layer(parentLayer,i,parentName,parentID,layer,groupRotation, originalSymbolParentLayer, originalSymbolLayer, symbolParentInstanceID);
+                var maskExportStuff=export_mask_layer(rootArtboard, parentLayer,i,parentName,parentID,layer,groupRotation, originalSymbolParentLayer, originalSymbolLayer, symbolParentInstanceID, recursion_level);
                 var exportedSlices=maskExportStuff.exportedItems;
             }else{
 
-                var exportedSlices=export_layer(layer,parentName,parentID, groupRotation, groupFlipped, originalSymbolLayer, symbolParentInstanceID);
+                var exportedSlices=export_layer(rootArtboard, layer,parentName,parentID, groupRotation, groupFlipped, originalSymbolLayer, symbolParentInstanceID, recursion_level);
             }
 
             var exportedSlicesCount=exportedSlices.length;
@@ -486,7 +496,7 @@ function processExportableChildren(parentLayer,layers,parentName,parentID,option
                 if(maskExportStuff.lastChildExported!=i){
                     //alert("resuming mask export at layer"+maskExportStuff.lastChildExported);
 
-                    var childItemsResume=processExportableChildren(parentLayer,layers,parentName,parentID,{loopFrom:maskExportStuff.lastChildExported}, groupRotation, groupFlipped, originalSymbolParentLayer, originalLayersForSymbol, symbolParentInstanceID);
+                    var childItemsResume=processExportableChildren(rootArtboard, parentLayer,layers,parentName,parentID,{loopFrom:maskExportStuff.lastChildExported}, groupRotation, groupFlipped, originalSymbolParentLayer, originalLayersForSymbol, symbolParentInstanceID,recursion_level+1);
                     for(var n=0;n<childItemsResume.length;n++){
                         childItemsResume[n].hidden=exportInvisibleLayer?"1":"0";
                         items.push(childItemsResume[n]);
@@ -539,7 +549,8 @@ function okToExport(layerID){
     return false;
 }
 
-var export_mask_layer = function(layer, mask_index,parentName,parentID,og_mask_layer, groupRotation, originalSymbolParentLayer, originalSymbolLayer, symbolParentInstanceID) {
+var export_mask_layer = function(rootArtboard, layer, mask_index,parentName,parentID,og_mask_layer, groupRotation, originalSymbolParentLayer, originalSymbolLayer, symbolParentInstanceID, recursion_level=1) {
+    log(`${' '.repeat(recursion_level)} in export_mask_layer for layer ${layer.name()}`);
     var layer_copy = [layer duplicate];
     var sublayers = [layer_copy layers];
     var currentOriginalLayers = (originalSymbolParentLayer) ? [originalSymbolParentLayer layers] : [layer layers];
@@ -559,22 +570,31 @@ var export_mask_layer = function(layer, mask_index,parentName,parentID,og_mask_l
         addedToNewArtboard=true;
     }
 
-    [[[artboard frame] setWidth:[currentArtboard frame].width()]];
-    [[[artboard frame] setHeight:[currentArtboard frame].height()]];
+    log(`${' '.repeat(recursion_level)} setting fake artboard width ${[currentArtboard frame].width()} height ${[currentArtboard frame].height()}`);
+    [[[artboard frame] setWidth:([currentArtboard frame].width())]];
+    [[[artboard frame] setHeight:([currentArtboard frame].height())]];
     [[artboard frame] setY:offset]; // setTop throws undefined function error, replaced with setY
     [[artboard frame] setX:offset]; // setLeft throws undefined function error, replaced with setX
+    log(`${' '.repeat(recursion_level)} actual fake artboard width ${[artboard frame].width()} height ${[artboard frame].height()}`);
 
     if(!addedToNewArtboard){
+        log(`${' '.repeat(recursion_level)} !addedToNewArtboard setting layer_copy x and y to 0`);
         [[layer_copy frame] setX:0]; //this is the parent and happens to be an artboard that will be placed under the dummy artboard
         [[layer_copy frame] setY:0];
     }else{
         try{
             var coords=getUICoordinates(layer);
-            [[layer_copy frame] setX:coords.x]; //this is the parent and is a group under the dummy artboard, so we fix it's position under the artboard
-            [[layer_copy frame] setY:coords.y];
+            // [[layer_copy frame] setX:coords.x]; //this is the parent and is a group under the dummy artboard, so we fix it's position under the artboard
+            // [[layer_copy frame] setY:coords.y];
+            [[layer_copy frame] setX:0];
+            [[layer_copy frame] setY:0];
+            log(`${' '.repeat(recursion_level)} set layer_copy x 0 and y 0`);
+            // log(`${' '.repeat(recursion_level)} set layer_copy x ${coords.x} and y ${coords.y}`);
+            log(`${' '.repeat(recursion_level)} layer is actually x ${layer.frame().x()} and y ${layer.frame().y()}`);
         } catch(error){
             [[layer_copy frame] setX:0]; //this is the parent and is a group under the dummy artboard, so we fix it's position under the artboard
             [[layer_copy frame] setY:0];
+            log(`${' '.repeat(recursion_level)} couldn't set layer_copy from coords, setting x and y to 0`);
         }
 
 
@@ -602,10 +622,28 @@ var export_mask_layer = function(layer, mask_index,parentName,parentID,og_mask_l
             toBeRemoved.push([sublayers objectAtIndex:n])
         }
     }
+
+    // let filteredSublayers = [];
     for (var i = 0; i < toBeRemoved.length; ++i) {
-        var l = toBeRemoved[i]
-            [l removeFromParent]
+        var l = toBeRemoved[i];
+        [l removeFromParent];
+        // try {
+        //     for(var m=0 ; m<sublayers.length ; m++ ){
+        //         let sublayer=sublayers[m];
+        //         if ([l objectID] !== [sublayer objectID]) {
+        //             filteredSublayers.push(sublayer);
+        //         }
+        //         else {
+        //             log(` Holding ${l.name()} from filtered sublayers `);
+        //         }
+        //     }
+        //     sublayers = filteredSublayers;
+        // }
+        // catch (err) {
+        //     log(` Error filtering ${l.name()} from sublayers `);
+        // }
     }
+    sublayers = [layer_copy layers];
 
     try{
         [layer_copy unregisterAsSymbolIfNecessary]
@@ -646,7 +684,7 @@ var export_mask_layer = function(layer, mask_index,parentName,parentID,og_mask_l
         var canBeExported = ![currentOriginalLayer isVisible] && exportInvisible ;
 
         if (canBeExported || [currentOriginalLayer isVisible]) {
-            exportMaskSubLayer(currentLayer, currentOriginalLayer, pathParentName, pathParentID, addedToNewArtboard, newExportedItems, groupRotation, i , symbolParentInstanceID, [sublayers objectAtIndex:0]);
+            exportMaskSubLayer(rootArtboard, currentLayer, currentOriginalLayer, pathParentName, pathParentID, addedToNewArtboard, newExportedItems, groupRotation, i , symbolParentInstanceID, [sublayers objectAtIndex:0],recursion_level+1);
             [currentLayer removeFromParent];
             exportedItems.push.apply(exportedItems, newExportedItems);
         }
@@ -655,17 +693,16 @@ var export_mask_layer = function(layer, mask_index,parentName,parentID,og_mask_l
 
     }
 
-
+    // breakmehere();
 
     [layer_copy removeFromParent];
     [artboard removeFromParent];
 
-
     return {"exportedItems":exportedItems.reverse(),"lastChildExported":maskStopAt};
 }
 
-function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedToNewArtboard, newExportedItems, groupRotation, subLayerIndex, originalParentID, firstMaskLayer ){
-
+function exportMaskSubLayer(rootArtboard, mask_layer,og_mask_layer,parentName,parentID,addedToNewArtboard, newExportedItems, groupRotation, subLayerIndex, originalParentID, firstMaskLayer, recursion_level=1 ){
+    log(`${' '.repeat(recursion_level)} in exportMaskSubLayer for layer ${mask_layer.name()}`);
 
     // print( "SubMaskLayer Class " + " " + [mask_layer class]);
     // print( "SubMaskLayer name " + " " + [mask_layer name]);
@@ -676,7 +713,6 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
     if (!isMaskSublayerVisible(mask_layer,firstMaskLayer) ) {
         return;
     }
-
 
     var canBeExported = ![og_mask_layer isVisible] && exportInvisible ;
     if ( !canBeExported && ![og_mask_layer isVisible]) { return; }
@@ -702,6 +738,7 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
 
     if ((is_group(mask_layer) && !(minimalExportMode && isThisLastParent))|| isInstanceOfSymbol || isSymbolMaster) {
 
+        log(`${' '.repeat(recursion_level)} in IF (is_group(mask_layer) && !(minimalExportMode && isThisLastParent))|| isInstanceOfSymbol || isSymbolMaster`);
         var subLayersCount;
         var maskLayerSublayers ;
         var maskOriginalLayerSublayers;
@@ -819,12 +856,13 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
             var canBeExported = ![currentSubLayer isVisible] && exportInvisible ;
             if ( !canBeExported && ![currentSubLayer isVisible]) { continue; }
 
-            exportMaskSubLayer(currentSubLayer, currentOriginalSubLayer, parentName + "/" +[og_mask_layer name], parentID + "/" +sliceId,addedToNewArtboard, newExportedItems, groupRotation, subLayerIndex, originalParentID, firstMaskLayer);
+            exportMaskSubLayer(rootArtboard, currentSubLayer, currentOriginalSubLayer, parentName + "/" +[og_mask_layer name], parentID + "/" +sliceId,addedToNewArtboard, newExportedItems, groupRotation, subLayerIndex, originalParentID, firstMaskLayer,recursion_level+1);
 
         }
 
-    } else {
-
+    }
+    else {
+        log(`${' '.repeat(recursion_level)} in ELSE of (is_group(mask_layer) && !(minimalExportMode && isThisLastParent))|| isInstanceOfSymbol || isSymbolMaster`);
 
         mask_layer.name = removeEmojisFromLayerName([mask_layer name]).trim();
 
@@ -861,19 +899,28 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
 
         try {
             slice = [[MSSliceMaker slicesFromExportableLayer:mask_layer sizes:exportSizes] firstObject];
+            log(`${' '.repeat(recursion_level)} sliced with 1st try`);
         }catch(e){
             try{
                 //compatibility with Sketch 3.4
                 slice = [[MSSliceMaker slicesFromExportableLayer:mask_layer sizes:exportSizes useIDForName:false] firstObject];
+                log(`${' '.repeat(recursion_level)} sliced with 2nd try`);
             }catch(e){
                 //compatibility with Sketch 3.5
-                slice=[[MSExportRequest exportRequestsFromExportableLayer:mask_layer exportFormats:exportSizes useIDForName:false] firstObject];
+                try {
+                    slice=[[MSExportRequest exportRequestsFromExportableLayer:mask_layer exportFormats:exportSizes useIDForName:false] firstObject];
+                    log(`${' '.repeat(recursion_level)} sliced with 3rd try`);
+                }
+                catch(e) {
+                    log(`${' '.repeat(recursion_level)} Error slicing ${mask_layer.name()} after all tries`);
+                }
             }
 
         }
 
 
         if(okToExport([og_mask_layer objectID])){
+            log(`${' '.repeat(recursion_level)} saving ${outFile} to disk`);
             [doc saveArtboardOrSlice:slice toFile:outFile];
         }
 
@@ -894,9 +941,11 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
             catch(e){
                 try {
                     // works from version 96
-                    bounds = extractTrimmedSliceBounds(sliceLayer);
+                    bounds = extractTrimmedSliceBounds(rootArtboard ,sliceLayer, og_mask_layer, true, offset, recursion_level);
+                    log(`${' '.repeat(recursion_level)} Bounds for ${sliceLayer.name()} x ${bounds.origin.x} y ${bounds.origin.y}   w ${bounds.size.width} h ${bounds.size.height}`);
                 }
                 catch(e) {
+                    log(`Error in extractTrimmedSliceBounds: ${e}`);
                 }
             }
         }
@@ -922,6 +971,7 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
 
 
         if ( groupRotation !=0 &&  (groupRotation % 360) != 0 && subLayerIndex == 0) {
+            log(`${' '.repeat(recursion_level)} passed ( groupRotation !=0 &&  (groupRotation % 360) != 0 && subLayerIndex == 0) will set bounds to ${coords.x} ${coords.y} `)
             var coords=getUICoordinates(og_mask_layer);
             var parentOrigArtboard=[og_mask_layer valueForKeyPath:@"parentArtboard"];
             var artboardOriginalRulerBase=[parentOrigArtboard rulerBase];
@@ -932,6 +982,7 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
 
         } else if ( groupRotation !=0 &&  (groupRotation % 360) != 0 && subLayerIndex != 0) {
             var coords=getUICoordinates(og_mask_layer);
+            log(`${' '.repeat(recursion_level)} passed ( groupRotation !=0 &&  (groupRotation % 360) != 0 && subLayerIndex != 0) will set bounds to ${coords.x} ${coords.y} `);
             // var parentOrigArtboard=[og_mask_layer valueForKeyPath:@"parentArtboard"];
             // var artboardOriginalRulerBase=[parentOrigArtboard rulerBase];
             // var artboardOrigCoords=getUICoordinates_exp(parentOrigArtboard);
@@ -949,6 +1000,10 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
 
 
         //alert(bounds.origin.x + addedToNewArtboard);
+        log(`${' '.repeat(recursion_level)} bounds.origin.x ${bounds.origin.x}`);
+        log(`${' '.repeat(recursion_level)} offset ${offset}`);
+        log(`${' '.repeat(recursion_level)} export_scale ${export_scale}`);
+        // log(`${' '.repeat(recursion_level)} (bounds.origin.x-offset)*export_scale) ${eval((bounds.origin.x-offset)*export_scale)}`);
         var exportedPosition={'x':""+eval((bounds.origin.x-offset)*export_scale),'y':""+eval((bounds.origin.y-offset)*export_scale)}
         var exportedSize={'width':""+eval(bounds.size.width*export_scale),'height':""+eval(bounds.size.height*export_scale)}
         //alert(sliceName+exportedPosition.x);
@@ -981,7 +1036,8 @@ function exportMaskSubLayer(mask_layer,og_mask_layer,parentName,parentID,addedTo
 }
 
 
-function export_layer(ogLayer,parentName,parentID, totalGroupRotation, groupFlipped, originalSymbolLayer, symbolParentInstanceID){
+function export_layer(rootArtboard, ogLayer,parentName,parentID, totalGroupRotation, groupFlipped, originalSymbolLayer, symbolParentInstanceID, recursion_level=1){
+    log(`${' '.repeat(recursion_level)} in export_layer for layer ${ogLayer.name()}`);
     var layer_copy = [ogLayer duplicate];
 
     [layer_copy removeFromParent];
@@ -1093,7 +1149,7 @@ function export_layer(ogLayer,parentName,parentID, totalGroupRotation, groupFlip
             slice = [[MSSliceMaker slicesFromExportableLayer:layer_copy sizes:exportSizes useIDForName:false] firstObject];
         }catch(e){
             //compatibility with Sketch 3.5
-            slice=[[MSExportRequest exportRequestsFromExportableLayer:layer_copy exportFormats:exportSizes useIDForName:false] firstObject];
+            slice=[[MSExportRequest exportRequestsFromExportableLayer:ogLayer exportFormats:exportSizes useIDForName:false] firstObject];
         }
 
     }
@@ -1118,9 +1174,90 @@ function export_layer(ogLayer,parentName,parentID, totalGroupRotation, groupFlip
         catch(e){
             try {
                 // works from version 96
-                bounds = extractTrimmedSliceBounds(sliceLayer);
+                function absoluteRectForLayer(layer) {
+                    return layer.parentObject().convertRect_toCoordinateSpace_(layer.frame().rect(), null);
+                }
+                function absoluteClippingRectForLayer(layer) {
+                    var clippingRect = NSZeroRect
+                    var foundAtLeastOneMask = false
+                    var current = layer
+                    do {
+                        const mask = current.closestClippingLayer();
+                        if (!mask) {
+                            continue;
+                        }
+                        const maskRect = NSIntegralRect(absoluteRectForLayer(mask));
+                        if (foundAtLeastOneMask) {
+                            clippingRect = NSIntersectionRect(clippingRect, maskRect);
+                        } else {
+                            clippingRect = maskRect;
+                            foundAtLeastOneMask = true;
+                        }
+                    } while (current = current.parentGroup());
+
+                    if (foundAtLeastOneMask) {
+                        return clippingRect;
+                    }
+                    return null;
+                }
+
+                bounds = NSClassFromString("SketchRendering.MSSliceTrimming").trimmedRectForLayerAncestry_(ogLayer.ancestry())
+                const trimInfo = function() {
+                    let exportRequestForSlice = MSExportRequest.exportRequestsFromLayerAncestry_(ogLayer.ancestry()).firstObject()
+                    exportRequestForSlice.setShouldTrim_(true);
+                    let exporterForSlice = MSExporter.exporterForRequest_colorSpace_(exportRequestForSlice, nil);
+                    return {
+                        offset: exporterForSlice.trimmedBounds().origin,
+                        size: exporterForSlice.trimmedBounds().size
+                    };
+                }()
+
+                // Sometimes the trimmed layer is calculated at zero dimensions.. flag to reset to width/height later
+                let isTrimmedToNothing = false;
+                if (trimInfo.size.width == 0 || trimInfo.size.height == 0) {
+                    isTrimmedToNothing = true;
+                }
+
+                // Make sure the layer is clipped by its mask chain if needed
+                const clippingRect = absoluteClippingRectForLayer(ogLayer);
+                if (clippingRect) {
+                    bounds = NSIntersectionRect(bounds, clippingRect)
+                }
+
+                // Make sure the layer is clipped by its artboard (since the outside parts are not noramlly rendered by Sketch)
+                // but only do this if the layer is in an artboard, for symbol masters it is not clipped apparently...
+                if (rootArtboard.className() == 'MSArtboardGroup') {
+                    bounds = NSIntersectionRect(bounds, rootArtboard.frame().rect())
+                }
+
+                // Make sure we trim the resulting layer frame so it matches its image preview size precisely
+                bounds.origin.x += trimInfo.offset.x
+                bounds.origin.y += trimInfo.offset.y
+                bounds.size.width = Math.min(trimInfo.size.width, bounds.size.width)
+                bounds.size.height = Math.min(trimInfo.size.height, bounds.size.height)
+
+                // Rebase to artboard coordinate space
+                bounds.origin.x -= rootArtboard.frame().x()
+                bounds.origin.y -= rootArtboard.frame().y();
+
+                // try to reset width and height for layers trimmed to oblivion
+                if (isTrimmedToNothing) {
+                    bounds.size.width = ogLayer.frame().width();
+                    bounds.size.height = ogLayer.frame().height();
+                }
+
+                // if we get here with zero dimension discard the added layers and return nothing
+                if (bounds.size.width == 0 || bounds.size.height == 0) {
+                    [sliceLayer removeFromParent];
+                    [layer_copy removeFromParent];
+                    return [];
+                }
+
+                // (Optional) extend the rect so it's pixel-aligned
+                bounds = NSIntegralRectWithOptions(bounds, NSAlignAllEdgesOutward)
             }
             catch(e) {
+                log(`Error in extracting bounds for exported slice: ${e}`);
             }
         }
     }
@@ -1145,14 +1282,14 @@ function export_layer(ogLayer,parentName,parentID, totalGroupRotation, groupFlip
         // log(bounds.origin.x + ", " + bounds.origin.y)
     }
 
-    if ( totalGroupRotation !=0 &&  (totalGroupRotation % 360) != 0 && !([layer_copy className]=="MSArtboardGroup" || [layer_copy className]=="MSSymbolMaster") ) {
-        var coords=getUICoordinates(ogLayer);
-        var parentOrigArtboard=[ogLayer valueForKeyPath:@"parentArtboard"];
-        var artboardOriginalRulerBase=[parentOrigArtboard rulerBase];
-        var artboardOrigCoords=getUICoordinates_exp(parentOrigArtboard);
-        bounds.origin.x = coords.x// -(-artboardOriginalRulerBase.x+artboardOrigCoords.x);
-        bounds.origin.y = coords.y// -(-artboardOriginalRulerBase.y+artboardOrigCoords.y);
-    }
+    // if ( totalGroupRotation !=0 &&  (totalGroupRotation % 360) != 0 && !([layer_copy className]=="MSArtboardGroup" || [layer_copy className]=="MSSymbolMaster") ) {
+    //     var coords=getUICoordinates(ogLayer);
+    //     var parentOrigArtboard=[ogLayer valueForKeyPath:@"parentArtboard"];
+    //     var artboardOriginalRulerBase=[parentOrigArtboard rulerBase];
+    //     var artboardOrigCoords=getUICoordinates_exp(parentOrigArtboard);
+    //     bounds.origin.x = coords.x// -(-artboardOriginalRulerBase.x+artboardOrigCoords.x);
+    //     bounds.origin.y = coords.y// -(-artboardOriginalRulerBase.y+artboardOrigCoords.y);
+    // }
 
     // else {
     //     //alert(sliceName+" bounds:"+bounds.origin.y+" artboardbase:"+artboardRulerBase.y+"pos:"+artboardCoords.y)
@@ -1432,11 +1569,11 @@ function getUICoordinates_exp (layer){
     }
 
     var ui = {
-            x: x,
-            y:y,
-            width: f.width(),
-            height: f.height()
-        }
+        x: x,
+        y:y,
+        width: f.width(),
+        height: f.height()
+    }
     return ui
 }
 function getUICoordinates (layer){
@@ -1452,11 +1589,11 @@ function getUICoordinates (layer){
     }
 
     var ui = {
-            x: x,
-            y:y,
-            width: f.width(),
-            height: f.height()
-        }
+        x: x,
+        y:y,
+        width: f.width(),
+        height: f.height()
+    }
     return ui
 }
 
@@ -1602,8 +1739,8 @@ function doConfirm(message){
     attributedString.addAttribute_value_range(NSFontAttributeName, [NSFont systemFontOfSize:11 weight: NSFontWeightBold], range);
 
     tf1.setAttributedStringValue(attributedString)
-    // tf1.stringValue="Tip: For best performance, use '@' in front of group names to export groups as single images.";
-    [accessory addSubview:tf1];
+        // tf1.stringValue="Tip: For best performance, use '@' in front of group names to export groups as single images.";
+        [accessory addSubview:tf1];
 
     //link button above For best performance
     var tf2 = [[NSButton alloc] initWithFrame:NSMakeRect(63, 140, 113, 11)];
